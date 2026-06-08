@@ -10,14 +10,6 @@
     namespace: "{{ ocp4_workload_tenant_keycloak_user_keycloak_namespace }}"
   register: r_keycloak_admin_secret
 
-- name: Fail if Keycloak admin secret not found
-  when: r_keycloak_admin_secret.resources | length == 0
-  ansible.builtin.fail:
-    msg: >-
-      Keycloak admin secret '{{ ocp4_workload_tenant_keycloak_user_keycloak_admin_secret }}'
-      not found in namespace '{{ ocp4_workload_tenant_keycloak_user_keycloak_namespace }}'.
-      Ensure Keycloak is installed before running this workload.  
-
 - name: Set Keycloak admin credentials
   ansible.builtin.set_fact:
     _ocp4_workload_tenant_keycloak_user_keycloak_admin_user: >-
