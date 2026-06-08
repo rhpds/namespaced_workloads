@@ -19,6 +19,7 @@
   register: r_keycloak_admin_secret
 
 - name: Set Keycloak admin credentials
+  when: r_keycloak_admin_secret.resources | length > 0
   ansible.builtin.set_fact:
     _ocp4_workload_tenant_keycloak_user_keycloak_admin_user: >-
       {{ r_keycloak_admin_secret.resources[0].data.username | b64decode }}
@@ -28,6 +29,7 @@
       https://sso.{{ _ocp4_workload_tenant_keycloak_user_ingress_domain }}
 
 - name: Get Keycloak admin access token
+  when: r_keycloak_admin_secret.resources | length > 0
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/realms/master/protocol/openid-connect/token"
     method: POST
@@ -41,6 +43,7 @@
   register: r_keycloak_token
 
 - name: Get user ID from Keycloak
+  when: r_keycloak_admin_secret.resources | length > 0
   ansible.builtin.uri:
     url: >-
       {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
@@ -53,7 +56,9 @@
   register: r_keycloak_user
 
 - name: Delete user from Keycloak
-  when: r_keycloak_user.json | length > 0
+  when: 
+  - r_keycloak_admin_secret.resources | length > 0
+  - r_keycloak_user.json | default([]) | length > 0
   ansible.builtin.uri:
     url: >-
       {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
@@ -71,7 +76,9 @@
 # OCP Identity and User cleanup
 # -----------------------------------------------
 - name: Delete OCP Identity for Keycloak user
-  when: r_keycloak_user.json | length > 0
+  when: 
+  - r_keycloak_admin_secret.resources | length > 0
+  - r_keycloak_user.json | default([]) | length > 0
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
