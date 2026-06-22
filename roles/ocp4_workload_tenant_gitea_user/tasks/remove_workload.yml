@@ -40,7 +40,7 @@
     - name: Get user
       ansible.builtin.uri:
         url: >-
-          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ocp4_workload_tenant_gitea_user_username}}
+          {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/users/{{ ocp4_workload_tenant_gitea_user_username }}
         status_code:
         - 200
         - 404
@@ -68,8 +68,8 @@
 
     - name: Delete all repositories for Gitea user
       when:
-        - _gitea_user_id is defined
-        - r_gitea_user_repos.json.data | default([]) | length > 0
+      - _gitea_user_id is defined
+      - r_gitea_user_repos.json.data | default([]) | length > 0
       ansible.builtin.uri:
         url: >-
           {{ _ocp4_workload_tenant_gitea_user_route }}/api/v1/repos/{{
