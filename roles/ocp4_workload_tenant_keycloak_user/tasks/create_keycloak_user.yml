@@ -78,3 +78,35 @@
       temporary: false
       value: "{{ ocp4_workload_tenant_keycloak_user_password }}"
     status_code: 204
+
+- name: Add user to Keycloak groups
+  when: ocp4_workload_tenant_keycloak_user_groups | length > 0
+  block:
+    - name: Look up group IDs
+      ansible.builtin.uri:
+        url: >-
+          {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+          ocp4_workload_tenant_keycloak_user_keycloak_realm }}/groups?search={{ item }}&exact=true
+        method: GET
+        validate_certs: false
+        headers:
+          Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+      register: r_keycloak_groups
+      loop: "{{ ocp4_workload_tenant_keycloak_user_groups }}"
+
+    - name: Add user to groups
+      ansible.builtin.uri:
+        url: >-
+          {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
+          ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
+          r_keycloak_user.json[0].id }}/groups/{{ item.json[0].id }}
+        method: PUT
+        validate_certs: false
+        headers:
+          Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
+          Content-Type: application/json
+        status_code: [204, 409]
+      loop: "{{ r_keycloak_groups.results }}"
+      loop_control:
+        label: "{{ item.item }}"
+      when: item.json | length > 0

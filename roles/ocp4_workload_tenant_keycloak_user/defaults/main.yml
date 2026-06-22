@@ -11,3 +11,11 @@ ocp4_workload_tenant_keycloak_user_password: ""
 ocp4_workload_tenant_keycloak_user_keycloak_namespace: keycloak
 ocp4_workload_tenant_keycloak_user_keycloak_realm: sso
 ocp4_workload_tenant_keycloak_user_keycloak_admin_secret: keycloak-initial-admin
+
+# Groups to add the user to (by group name).
+# Groups must already exist in the realm (e.g. created by the realm import).
+# Example:
+#   ocp4_workload_tenant_keycloak_user_groups:
+#     - users
+#     - developers
+ocp4_workload_tenant_keycloak_user_groups: []
