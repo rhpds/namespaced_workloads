@@ -48,7 +48,7 @@
                       aws --endpoint-url {{ troshka_seed_s3_endpoint }} s3 cp \
                       s3://{{ troshka_seed_s3_bucket }}/{{ img.s3_object }} /tmp/{{ img.s3_object }}
                     AWS_ACCESS_KEY_ID=$LOCAL_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$LOCAL_SECRET_KEY \
-                      aws --endpoint-url {{ _s4_s3_endpoint }} s3 cp \
+                      aws --endpoint-url {{ troshka_s4_endpoint }} s3 cp \
                       /tmp/{{ img.s3_object }} s3://{{ troshka_s4_bucket }}/seed/{{ img.s3_object }}
                     rm -f /tmp/{{ img.s3_object }}
                     {% endfor %}

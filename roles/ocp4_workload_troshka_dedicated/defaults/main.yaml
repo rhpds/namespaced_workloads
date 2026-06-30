@@ -30,3 +30,4 @@ troshka_postgres_pvc_size: "10Gi"
 # S4
 troshka_s4_pvc_size: "50Gi"
 troshka_s4_bucket: "troshka-images"
+troshka_s4_endpoint: "http://troshka-s4.{{ troshka_namespace }}.svc:7480"
