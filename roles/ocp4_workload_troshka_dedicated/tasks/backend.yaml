@@ -29,8 +29,8 @@
             allowed_users: "{{ _requester_identity }}"
             operator_users: ""
           s3:
-            endpoint_url: "{{ _minio_s3_endpoint }}"
-            bucket: "troshka-images"
+            endpoint_url: "{{ _s4_s3_endpoint }}"
+            bucket: "{{ troshka_s4_bucket }}"
             region: "us-east-1"
           defaults:
             run_timer_hours: 8

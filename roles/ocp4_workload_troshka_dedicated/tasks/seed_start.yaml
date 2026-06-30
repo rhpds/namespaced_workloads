@@ -1,6 +1,6 @@
 ---
 - name: Wait for ISO DataVolume to be ready
-  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+  when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   kubernetes.core.k8s_info:
     api_version: cdi.kubevirt.io/v1beta1
     kind: DataVolume
@@ -12,7 +12,7 @@
   delay: 15
 
 - name: Start seed download job (runs in background while other tasks proceed)
-  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+  when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   kubernetes.core.k8s:
     state: present
     definition:
@@ -28,16 +28,28 @@
             restartPolicy: Never
             containers:
               - name: seed
-                image: quay.io/minio/mc:latest
+                image: amazon/aws-cli:latest
+                env:
+                  - name: CENTRAL_ACCESS_KEY
+                    value: "{{ troshka_seed_s3_access_key }}"
+                  - name: CENTRAL_SECRET_KEY
+                    value: "{{ troshka_seed_s3_secret_key }}"
+                  - name: LOCAL_ACCESS_KEY
+                    value: "{{ _s4_access_key }}"
+                  - name: LOCAL_SECRET_KEY
+                    value: "{{ _s4_secret_key }}"
                 command:
                   - /bin/sh
                   - -c
                   - |
-                    export HOME=/tmp
-                    mc alias set central {{ troshka_seed_minio_endpoint }} {{ troshka_seed_minio_access_key }} {{ troshka_seed_minio_secret_key }}
-                    mc alias set local http://troshka-minio:9000 {{ _minio_root_user }} {{ _minio_root_password }}
                     {% for img in troshka_seed_images %}
                     echo "Copying {{ img.s3_object }}..."
-                    mc cp central/{{ troshka_seed_minio_bucket }}/{{ img.s3_object }} local/troshka-images/seed/{{ img.s3_object }}
+                    AWS_ACCESS_KEY_ID=$CENTRAL_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$CENTRAL_SECRET_KEY \
+                      aws --endpoint-url {{ troshka_seed_s3_endpoint }} s3 cp \
+                      s3://{{ troshka_seed_s3_bucket }}/{{ img.s3_object }} /tmp/{{ img.s3_object }}
+                    AWS_ACCESS_KEY_ID=$LOCAL_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$LOCAL_SECRET_KEY \
+                      aws --endpoint-url {{ _s4_s3_endpoint }} s3 cp \
+                      /tmp/{{ img.s3_object }} s3://{{ troshka_s4_bucket }}/seed/{{ img.s3_object }}
+                    rm -f /tmp/{{ img.s3_object }}
                     {% endfor %}
                     echo "Seed copy complete"

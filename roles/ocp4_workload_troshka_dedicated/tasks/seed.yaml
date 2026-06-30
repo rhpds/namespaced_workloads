@@ -1,11 +1,11 @@
 ---
-- name: Skip seeding if no central MinIO configured
-  when: troshka_seed_minio_endpoint | default('') == '' or troshka_seed_images | length == 0
+- name: Skip seeding if no central S3 configured
+  when: troshka_seed_s3_endpoint | default('') == '' or troshka_seed_images | length == 0
   ansible.builtin.debug:
     msg: "No seed images configured, skipping library seeding"
 
-- name: Seed library from central MinIO
-  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+- name: Seed library from central S4
+  when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   block:
     - name: Wait for seed download job to complete
       kubernetes.core.k8s_info:
