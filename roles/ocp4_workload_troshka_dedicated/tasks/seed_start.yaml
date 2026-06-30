@@ -28,7 +28,7 @@
             restartPolicy: Never
             containers:
               - name: seed
-                image: amazon/aws-cli:latest
+                image: rclone/rclone:latest
                 env:
                   - name: CENTRAL_ACCESS_KEY
                     value: "{{ troshka_seed_s3_access_key }}"
@@ -42,14 +42,35 @@
                   - /bin/sh
                   - -c
                   - |
+                    cat > /tmp/rclone.conf <<CONF
+                    [central]
+                    type = s3
+                    provider = Ceph
+                    endpoint = {{ troshka_seed_s3_endpoint }}
+                    access_key_id = ${CENTRAL_ACCESS_KEY}
+                    secret_access_key = ${CENTRAL_SECRET_KEY}
+
+                    [local]
+                    type = s3
+                    provider = Ceph
+                    endpoint = {{ troshka_s4_endpoint }}
+                    access_key_id = ${LOCAL_ACCESS_KEY}
+                    secret_access_key = ${LOCAL_SECRET_KEY}
+                    CONF
+
                     {% for img in troshka_seed_images %}
                     echo "Copying {{ img.s3_object }}..."
-                    AWS_ACCESS_KEY_ID=$CENTRAL_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$CENTRAL_SECRET_KEY \
-                      aws --endpoint-url {{ troshka_seed_s3_endpoint }} s3 cp \
-                      s3://{{ troshka_seed_s3_bucket }}/{{ img.s3_object }} /tmp/{{ img.s3_object }}
-                    AWS_ACCESS_KEY_ID=$LOCAL_ACCESS_KEY AWS_SECRET_ACCESS_KEY=$LOCAL_SECRET_KEY \
-                      aws --endpoint-url {{ troshka_s4_endpoint }} s3 cp \
-                      /tmp/{{ img.s3_object }} s3://{{ troshka_s4_bucket }}/seed/{{ img.s3_object }}
-                    rm -f /tmp/{{ img.s3_object }}
+                    rclone copyto \
+                      --config /tmp/rclone.conf \
+                      --multi-thread-streams 0 \
+                      --s3-chunk-size 64M \
+                      "central:{{ troshka_seed_s3_bucket }}/{{ img.s3_object }}" \
+                      "local:{{ troshka_s4_bucket }}/seed/{{ img.s3_object }}"
                     {% endfor %}
                     echo "Seed copy complete"
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    memory: 512Mi
