@@ -1,0 +1,85 @@
+---
+- name: Skip seeding if no central MinIO configured
+  when: troshka_seed_minio_endpoint | default('') == '' or troshka_seed_images | length == 0
+  ansible.builtin.debug:
+    msg: "No seed images configured, skipping library seeding"
+
+- name: Seed library from central MinIO
+  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+  block:
+    - name: Wait for seed download job to complete
+      kubernetes.core.k8s_info:
+        api_version: batch/v1
+        kind: Job
+        name: troshka-seed-library
+        namespace: "{{ troshka_namespace }}"
+      register: _seed_job
+      until: (_seed_job.resources[0].status.succeeded | default(0)) >= 1
+      retries: 60
+      delay: 15
+
+    - name: Check existing library items
+      kubernetes.core.k8s_exec:
+        namespace: "{{ troshka_namespace }}"
+        pod: "{{ _backend_pod }}"
+        container: backend
+        command: >-
+          curl -sf http://localhost:8200/api/v1/library/
+          -H "X-Forwarded-Email: {{ _requester_identity }}"
+      register: _existing_library
+
+    - name: Build existing items lookup
+      ansible.builtin.set_fact:
+        _existing_by_name: "{{ dict((_existing_library.stdout | from_json) | map(attribute='name') | zip(_existing_library.stdout | from_json)) }}"
+
+    - name: Determine which images need seeding
+      ansible.builtin.set_fact:
+        _images_to_seed: "{{ troshka_seed_images | rejectattr('name', 'in', _existing_by_name.keys() | list) | list }}"
+
+    - name: Update tags on existing items
+      kubernetes.core.k8s_exec:
+        namespace: "{{ troshka_namespace }}"
+        pod: "{{ _backend_pod }}"
+        container: backend
+        command: >-
+          curl -sf -X PATCH http://localhost:8200/api/v1/library/{{ _existing_by_name[item.name].id }}
+          -H "Content-Type: application/json"
+          -H "X-Forwarded-Email: {{ _requester_identity }}"
+          -d '{"tags":{"{{ item.tags[0] }}":true}}'
+      loop: "{{ troshka_seed_images | selectattr('name', 'in', _existing_by_name.keys() | list) | list }}"
+      when: item.tags | default([]) | length > 0
+      ignore_errors: true
+
+    - name: Create and finalize new library items
+      when: _images_to_seed | length > 0
+      block:
+        - name: Create library items via API
+          kubernetes.core.k8s_exec:
+            namespace: "{{ troshka_namespace }}"
+            pod: "{{ _backend_pod }}"
+            container: backend
+            command: >-
+              curl -sf -X POST http://localhost:8200/api/v1/library/
+              -H "Content-Type: application/json"
+              -H "X-Forwarded-Email: {{ _requester_identity }}"
+              -d '{"name":"{{ item.name }}","type":"{{ item.type }}","format":"{{ item.format }}"}'
+          register: _lib_items
+          loop: "{{ _images_to_seed }}"
+
+        - name: Finalize seed items
+          kubernetes.core.k8s_exec:
+            namespace: "{{ troshka_namespace }}"
+            pod: "{{ _backend_pod }}"
+            container: backend
+            command: >-
+              curl -sf -X POST http://localhost:8200/api/v1/library/{{ (item.stdout | from_json).id }}/finalize-seed
+              -H "Content-Type: application/json"
+              -H "X-Forwarded-Email: {{ _requester_identity }}"
+              -d '{"seed_key":"seed/{{ _images_to_seed[idx].s3_object }}","tags":{{ _images_to_seed[idx].tags | default([]) | to_json }},"skip_copy":true}'
+          loop: "{{ _lib_items.results }}"
+          loop_control:
+            index_var: idx
+
+    - name: Report seed status
+      ansible.builtin.debug:
+        msg: "{{ _images_to_seed | length }} new, {{ troshka_seed_images | length - _images_to_seed | length }} already existed"
