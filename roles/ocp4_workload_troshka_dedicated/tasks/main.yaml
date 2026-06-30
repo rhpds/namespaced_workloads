@@ -2,18 +2,30 @@
 - name: Run provision tasks
   when: ACTION == "provision" or ACTION == "create"
   block:
-    - ansible.builtin.include_tasks: serviceaccount.yaml
-    - ansible.builtin.include_tasks: postgres.yaml
-    - ansible.builtin.include_tasks: minio.yaml
-    - ansible.builtin.include_tasks: seed_start.yaml
-    - ansible.builtin.include_tasks: secrets.yaml
-    - ansible.builtin.include_tasks: backend.yaml
-    - ansible.builtin.include_tasks: migrate.yaml
-    - ansible.builtin.include_tasks: frontend.yaml
-    - ansible.builtin.include_tasks: oauth.yaml
-    - ansible.builtin.include_tasks: configure.yaml
-    - ansible.builtin.include_tasks: user_settings.yaml
-    - ansible.builtin.include_tasks: seed.yaml
+    - name: Include service account tasks
+      ansible.builtin.include_tasks: serviceaccount.yaml
+    - name: Include PostgreSQL tasks
+      ansible.builtin.include_tasks: postgres.yaml
+    - name: Include MinIO tasks
+      ansible.builtin.include_tasks: minio.yaml
+    - name: Include seed start tasks
+      ansible.builtin.include_tasks: seed_start.yaml
+    - name: Include secrets tasks
+      ansible.builtin.include_tasks: secrets.yaml
+    - name: Include backend tasks
+      ansible.builtin.include_tasks: backend.yaml
+    - name: Include database migration tasks
+      ansible.builtin.include_tasks: migrate.yaml
+    - name: Include frontend tasks
+      ansible.builtin.include_tasks: frontend.yaml
+    - name: Include OAuth tasks
+      ansible.builtin.include_tasks: oauth.yaml
+    - name: Include configuration tasks
+      ansible.builtin.include_tasks: configure.yaml
+    - name: Include user settings tasks
+      ansible.builtin.include_tasks: user_settings.yaml
+    - name: Include seed tasks
+      ansible.builtin.include_tasks: seed.yaml
 
 - name: Run remove tasks
   when: ACTION == "destroy" or ACTION == "remove"
