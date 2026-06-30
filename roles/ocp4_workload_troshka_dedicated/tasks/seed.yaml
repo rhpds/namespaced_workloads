@@ -30,11 +30,17 @@
 
     - name: Build existing items lookup
       ansible.builtin.set_fact:
-        _existing_by_name: "{{ dict((_existing_library.stdout | from_json) | map(attribute='name') | zip(_existing_library.stdout | from_json)) }}"
+        _existing_by_name: >-
+          {{ dict((_existing_library.stdout | from_json)
+          | map(attribute='name')
+          | zip(_existing_library.stdout | from_json)) }}
 
     - name: Determine which images need seeding
       ansible.builtin.set_fact:
-        _images_to_seed: "{{ troshka_seed_images | rejectattr('name', 'in', _existing_by_name.keys() | list) | list }}"
+        _images_to_seed: >-
+          {{ troshka_seed_images
+          | rejectattr('name', 'in', _existing_by_name.keys() | list)
+          | list }}
 
     - name: Update tags on existing items
       kubernetes.core.k8s_exec:
@@ -42,11 +48,15 @@
         pod: "{{ _backend_pod }}"
         container: backend
         command: >-
-          curl -sf -X PATCH http://localhost:8200/api/v1/library/{{ _existing_by_name[item.name].id }}
+          curl -sf -X PATCH
+          http://localhost:8200/api/v1/library/{{ _existing_by_name[item.name].id }}
           -H "Content-Type: application/json"
           -H "X-Forwarded-Email: {{ _requester_identity }}"
           -d '{"tags":{"{{ item.tags[0] }}":true}}'
-      loop: "{{ troshka_seed_images | selectattr('name', 'in', _existing_by_name.keys() | list) | list }}"
+      loop: >-
+        {{ troshka_seed_images
+        | selectattr('name', 'in', _existing_by_name.keys() | list)
+        | list }}
       when: item.tags | default([]) | length > 0
       ignore_errors: true
 
@@ -59,12 +69,27 @@
             pod: "{{ _backend_pod }}"
             container: backend
             command: >-
-              curl -sf -X POST http://localhost:8200/api/v1/library/
+              curl -sf -X POST
+              http://localhost:8200/api/v1/library/
               -H "Content-Type: application/json"
               -H "X-Forwarded-Email: {{ _requester_identity }}"
-              -d '{"name":"{{ item.name }}","type":"{{ item.type }}","format":"{{ item.format }}"}'
+              -d '{"name":"{{ item.name }}",
+              "type":"{{ item.type }}",
+              "format":"{{ item.format }}"}'
           register: _lib_items
           loop: "{{ _images_to_seed }}"
+
+        - name: Build finalize payload
+          ansible.builtin.set_fact:
+            _finalize_payload: >-
+              {"seed_key":"seed/{{ _images_to_seed[idx].s3_object }}",
+              "tags":{{ _images_to_seed[idx].tags
+              | default([]) | to_json }},
+              "skip_copy":true}
+          loop: "{{ _lib_items.results }}"
+          loop_control:
+            index_var: idx
+          register: _finalize_payloads
 
         - name: Finalize seed items
           kubernetes.core.k8s_exec:
@@ -72,14 +97,18 @@
             pod: "{{ _backend_pod }}"
             container: backend
             command: >-
-              curl -sf -X POST http://localhost:8200/api/v1/library/{{ (item.stdout | from_json).id }}/finalize-seed
+              curl -sf -X POST
+              http://localhost:8200/api/v1/library/{{ (item.stdout | from_json).id }}/finalize-seed
               -H "Content-Type: application/json"
               -H "X-Forwarded-Email: {{ _requester_identity }}"
-              -d '{"seed_key":"seed/{{ _images_to_seed[idx].s3_object }}","tags":{{ _images_to_seed[idx].tags | default([]) | to_json }},"skip_copy":true}'
+              -d '{{ _finalize_payloads.results[idx].ansible_facts._finalize_payload }}'
           loop: "{{ _lib_items.results }}"
           loop_control:
             index_var: idx
 
     - name: Report seed status
       ansible.builtin.debug:
-        msg: "{{ _images_to_seed | length }} new, {{ troshka_seed_images | length - _images_to_seed | length }} already existed"
+        msg: >-
+          {{ _images_to_seed | length }} new,
+          {{ troshka_seed_images | length - _images_to_seed | length }}
+          already existed
