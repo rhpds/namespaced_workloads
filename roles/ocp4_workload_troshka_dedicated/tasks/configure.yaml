@@ -35,7 +35,18 @@
 
 - name: Get cluster API URL
   ansible.builtin.set_fact:
-    _cluster_api_url: "{{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}"
+    _cluster_api_url: >-
+      {{ sandbox_openshift_api_url | default(lookup('env', 'K8S_AUTH_HOST')) }}
+
+- name: Build provider registration payload
+  ansible.builtin.set_fact:
+    _provider_payload: >-
+      {"name":"Local OCP Virt","type":"ocpvirt",
+      "default_region":"{{ troshka_namespace }}",
+      "default_image":"rhel10",
+      "token":"{{ _troshka_sa_token }}",
+      "namespace":"{{ troshka_namespace }}",
+      "api_url":"{{ _cluster_api_url }}"}
 
 - name: Register OCP Virt provider
   kubernetes.core.k8s_exec:
@@ -46,13 +57,21 @@
       curl -sf -X POST http://localhost:8200/api/v1/providers/
       -H "Content-Type: application/json"
       -H "X-Forwarded-Email: {{ _requester_identity }}"
-      -d '{"name":"Local OCP Virt","type":"ocpvirt","default_region":"{{ troshka_namespace }}","default_image":"rhel10","token":"{{ _troshka_sa_token }}","namespace":"{{ troshka_namespace }}","api_url":"{{ _cluster_api_url }}"}'
+      -d '{{ _provider_payload }}'
   register: _provider_result
   failed_when: _provider_result.return_code != 0
 
 - name: Parse provider response
   ansible.builtin.set_fact:
     _provider_id: "{{ (_provider_result.stdout | from_json).id }}"
+
+- name: Build host creation payload
+  ansible.builtin.set_fact:
+    _host_payload: >-
+      {"provider_id":"{{ _provider_id }}",
+      "name":"dedicated-host",
+      "instance_type":"{{ troshka_host_vcpus }}c-{{ troshka_host_memory_gb }}g",
+      "disk_gb":{{ troshka_host_disk_gb }}}
 
 - name: Create agent host
   kubernetes.core.k8s_exec:
@@ -63,7 +82,7 @@
       curl -sf -X POST http://localhost:8200/api/v1/hosts/
       -H "Content-Type: application/json"
       -H "X-Forwarded-Email: {{ _requester_identity }}"
-      -d '{"provider_id":"{{ _provider_id }}","name":"dedicated-host","instance_type":"{{ troshka_host_vcpus }}c-{{ troshka_host_memory_gb }}g","disk_gb":{{ troshka_host_disk_gb }}}'
+      -d '{{ _host_payload }}'
   register: _host_result
   failed_when: _host_result.return_code != 0
 
