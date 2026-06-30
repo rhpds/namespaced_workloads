@@ -1,7 +1,4 @@
 ---
-# Action: provision or remove
-ACTION: provision  # noqa: var-naming[pattern]
-
 # Namespace -- use the sandbox-provisioned namespace
 troshka_namespace: "{{ sandbox_openshift_namespace }}"
 
