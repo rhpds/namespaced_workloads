@@ -112,3 +112,14 @@
           {{ _images_to_seed | length }} new,
           {{ troshka_seed_images | length - _images_to_seed | length }}
           already existed
+
+- name: Re-sync central library to deduplicate seeded items
+  when: troshka_seed_s3_endpoint | default('') != ''
+  kubernetes.core.k8s_exec:
+    namespace: "{{ troshka_namespace }}"
+    pod: "{{ _backend_pod }}"
+    container: backend
+    command: >-
+      curl -sf -X POST http://localhost:8200/api/v1/library/sync-central
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+  ignore_errors: true
