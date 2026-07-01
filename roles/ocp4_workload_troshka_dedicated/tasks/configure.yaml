@@ -69,12 +69,10 @@
   ansible.builtin.set_fact:
     _s4_provider_payload: >-
       {"name":"Local S4","type":"s3",
-      "credentials":{
       "endpoint_url":"{{ troshka_s4_endpoint }}",
       "access_key_id":"{{ _s4_access_key }}",
       "secret_access_key":"{{ _s4_secret_key }}",
-      "bucket":"{{ troshka_s4_bucket }}",
-      "region":"us-east-1"}}
+      "bucket":"{{ troshka_s4_bucket }}"}
 
 - name: Register S4 storage provider
   kubernetes.core.k8s_exec:
