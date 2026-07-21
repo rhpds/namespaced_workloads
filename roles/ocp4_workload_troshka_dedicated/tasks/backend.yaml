@@ -25,6 +25,7 @@
             external_url: "https://{{ _troshka_route_host }}"
           auth:
             oauth_enabled: true
+            jwt_algorithm: "HS256"
             admin_users: "{{ _requester_identity }}"
             allowed_users: "{{ _requester_identity }}"
             operator_users: ""
