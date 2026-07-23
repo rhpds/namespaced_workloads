@@ -1,6 +1,6 @@
 ---
 - name: Wait for ISO DataVolume to be ready
-  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+  when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   kubernetes.core.k8s_info:
     api_version: cdi.kubevirt.io/v1beta1
     kind: DataVolume
@@ -12,7 +12,7 @@
   delay: 15
 
 - name: Start seed download job (runs in background while other tasks proceed)
-  when: troshka_seed_minio_endpoint | default('') != '' and troshka_seed_images | length > 0
+  when: troshka_seed_s3_endpoint | default('') != '' and troshka_seed_images | length > 0
   kubernetes.core.k8s:
     state: present
     definition:
@@ -28,16 +28,49 @@
             restartPolicy: Never
             containers:
               - name: seed
-                image: quay.io/minio/mc:latest
+                image: rclone/rclone:latest
+                env:
+                  - name: CENTRAL_ACCESS_KEY
+                    value: "{{ troshka_seed_s3_access_key }}"
+                  - name: CENTRAL_SECRET_KEY
+                    value: "{{ troshka_seed_s3_secret_key }}"
+                  - name: LOCAL_ACCESS_KEY
+                    value: "{{ _s4_access_key }}"
+                  - name: LOCAL_SECRET_KEY
+                    value: "{{ _s4_secret_key }}"
                 command:
                   - /bin/sh
                   - -c
                   - |
-                    export HOME=/tmp
-                    mc alias set central {{ troshka_seed_minio_endpoint }} {{ troshka_seed_minio_access_key }} {{ troshka_seed_minio_secret_key }}
-                    mc alias set local http://troshka-minio:9000 {{ _minio_root_user }} {{ _minio_root_password }}
+                    cat > /tmp/rclone.conf <<CONF
+                    [central]
+                    type = s3
+                    provider = Ceph
+                    endpoint = {{ troshka_seed_s3_endpoint }}
+                    access_key_id = ${CENTRAL_ACCESS_KEY}
+                    secret_access_key = ${CENTRAL_SECRET_KEY}
+
+                    [local]
+                    type = s3
+                    provider = Ceph
+                    endpoint = {{ troshka_s4_endpoint }}
+                    access_key_id = ${LOCAL_ACCESS_KEY}
+                    secret_access_key = ${LOCAL_SECRET_KEY}
+                    CONF
+
                     {% for img in troshka_seed_images %}
                     echo "Copying {{ img.s3_object }}..."
-                    mc cp central/{{ troshka_seed_minio_bucket }}/{{ img.s3_object }} local/troshka-images/seed/{{ img.s3_object }}
+                    rclone copyto \
+                      --config /tmp/rclone.conf \
+                      --multi-thread-streams 0 \
+                      --s3-chunk-size 64M \
+                      "central:{{ troshka_seed_s3_bucket }}/{{ img.s3_object }}" \
+                      "local:{{ troshka_s4_bucket }}/seed/{{ img.s3_object }}"
                     {% endfor %}
                     echo "Seed copy complete"
+                resources:
+                  requests:
+                    cpu: 100m
+                    memory: 128Mi
+                  limits:
+                    memory: 512Mi

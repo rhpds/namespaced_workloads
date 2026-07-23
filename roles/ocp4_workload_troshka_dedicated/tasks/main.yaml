@@ -6,8 +6,8 @@
       ansible.builtin.include_tasks: serviceaccount.yaml
     - name: Include PostgreSQL tasks
       ansible.builtin.include_tasks: postgres.yaml
-    - name: Include MinIO tasks
-      ansible.builtin.include_tasks: minio.yaml
+    - name: Include S4 tasks
+      ansible.builtin.include_tasks: s4.yaml
     - name: Include seed start tasks
       ansible.builtin.include_tasks: seed_start.yaml
     - name: Include secrets tasks

@@ -65,6 +65,52 @@
   ansible.builtin.set_fact:
     _provider_id: "{{ (_provider_result.stdout | from_json).id }}"
 
+- name: Build S4 provider payload
+  ansible.builtin.set_fact:
+    _s4_provider_payload: >-
+      {"name":"Local S4","type":"s3",
+      "endpoint_url":"{{ troshka_s4_endpoint }}",
+      "access_key_id":"{{ _s4_access_key }}",
+      "secret_access_key":"{{ _s4_secret_key }}",
+      "bucket":"{{ troshka_s4_bucket }}"}
+
+- name: Register S4 storage provider
+  kubernetes.core.k8s_exec:
+    namespace: "{{ troshka_namespace }}"
+    pod: "{{ _backend_pod }}"
+    container: backend
+    command: >-
+      curl -sf -X POST http://localhost:8200/api/v1/providers/
+      -H "Content-Type: application/json"
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+      -d '{{ _s4_provider_payload }}'
+  register: _s4_provider_result
+  failed_when: _s4_provider_result.return_code != 0
+
+- name: Build central S4 read-only provider payload
+  when: troshka_seed_s3_endpoint | default('') != ''
+  ansible.builtin.set_fact:
+    _central_provider_payload: >-
+      {"name":"Central Gold Images","type":"s3_readonly",
+      "access_key_id":"{{ troshka_seed_s3_access_key }}",
+      "secret_access_key":"{{ troshka_seed_s3_secret_key }}",
+      "bucket":"{{ troshka_seed_s3_bucket }}",
+      "endpoint_url":"{{ troshka_seed_s3_endpoint }}"}
+
+- name: Register central S4 read-only provider
+  when: troshka_seed_s3_endpoint | default('') != ''
+  kubernetes.core.k8s_exec:
+    namespace: "{{ troshka_namespace }}"
+    pod: "{{ _backend_pod }}"
+    container: backend
+    command: >-
+      curl -sf -X POST http://localhost:8200/api/v1/providers/
+      -H "Content-Type: application/json"
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+      -d '{{ _central_provider_payload }}'
+  register: _central_provider_result
+  failed_when: _central_provider_result.return_code != 0
+
 - name: Build host creation payload
   ansible.builtin.set_fact:
     _host_payload: >-

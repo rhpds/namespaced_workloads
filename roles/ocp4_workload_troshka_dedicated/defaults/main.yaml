@@ -12,10 +12,10 @@ troshka_host_memory_gb: 64
 troshka_host_disk_gb: 200
 
 # Central image repo
-troshka_seed_minio_endpoint: ""
-troshka_seed_minio_bucket: "troshka-gold-images"
-troshka_seed_minio_access_key: ""
-troshka_seed_minio_secret_key: ""
+troshka_seed_s3_endpoint: ""
+troshka_seed_s3_bucket: "troshka-gold-images"
+troshka_seed_s3_access_key: ""
+troshka_seed_s3_secret_key: ""
 troshka_seed_images: []
 
 # Resource limits
@@ -27,5 +27,7 @@ troshka_frontend_memory_limit: "512Mi"
 # Database
 troshka_postgres_pvc_size: "10Gi"
 
-# MinIO
-troshka_minio_pvc_size: "50Gi"
+# S4
+troshka_s4_pvc_size: "50Gi"
+troshka_s4_bucket: "troshka-images"
+troshka_s4_endpoint: "http://troshka-s4.{{ troshka_namespace }}.svc:7480"
