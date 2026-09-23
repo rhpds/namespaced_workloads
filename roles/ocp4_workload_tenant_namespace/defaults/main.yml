@@ -13,14 +13,6 @@ ocp4_workload_tenant_namespace_uuid: "{{ guid }}"
 # RBAC role bound to the user in each namespace.
 ocp4_workload_tenant_namespace_role: admin
 
-# Metadata to apply to the namespace, e.g.
-# ocp4_workload_tenant_namespace_default_metadata:
-#   labels:
-#     opendatahub.io/dashboard: "true"
-#     kueue-managed: "true"
-#     kueue.openshift.io/managed: "true"
-ocp4_workload_tenant_namespace_default_metadata: {}
-
 # Namespaces to create. Leave empty to create a single namespace named after
 # the user (no suffix). Each entry requires 'suffix'. 'quota' and
 # 'limit_range' override the role defaults below and are only used when

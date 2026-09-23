@@ -30,8 +30,7 @@
       - name: "{{ ocp4_workload_tenant_namespace_username }}"
         quota: "{{ ocp4_workload_tenant_namespace_default_quota }}"
         limit_range: "{{ ocp4_workload_tenant_namespace_default_limit_range }}"
-        metadata: "{{ ocp4_workload_tenant_namespace_default_metadata
-          | ansible.builtin.combine(_tenant_namespace_identity_metadata, recursive=True) }}"
+        metadata: "{{ _tenant_namespace_identity_metadata }}"
 
 - name: Build namespace list — from suffix entries
   when: ocp4_workload_tenant_namespace_suffixes | length > 0
@@ -42,7 +41,6 @@
            'quota': item.quota | default(ocp4_workload_tenant_namespace_default_quota),
            'limit_range': item.limit_range | default(ocp4_workload_tenant_namespace_default_limit_range),
            'metadata': (item.metadata | default({}))
-              | ansible.builtin.combine(ocp4_workload_tenant_namespace_default_metadata, recursive=True)
               | ansible.builtin.combine(_tenant_namespace_identity_metadata, recursive=True),
          }] }}
   loop: "{{ ocp4_workload_tenant_namespace_suffixes }}"
