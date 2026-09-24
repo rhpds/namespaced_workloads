@@ -14,5 +14,12 @@ ocp4_workload_tenant_quay_admin_credentials_secret: quay-admin-credentials
 ocp4_workload_tenant_quay_user: ""
 ocp4_workload_tenant_quay_user_password: ""
 
+# Optional: add the created user to this organization's team. The
+# organization and team (and any repository permissions granted to the
+# team) must already exist -- this role only adds team membership, it does
+# not create the organization, team, or repository permissions.
+ocp4_workload_tenant_quay_organization: ""
+ocp4_workload_tenant_quay_team: ""
+
 # Set to a list of namespaces to set up the pipeline ServiceAccount with the Quay credentials
 ocp4_workload_tenant_quay_pipeline_namespaces: []

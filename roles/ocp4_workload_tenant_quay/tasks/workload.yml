@@ -112,6 +112,24 @@
       password: "{{ ocp4_workload_tenant_quay_user_password }}"
     status_code: 200
 
+- name: Add Quay user to organization team
+  when:
+  - ocp4_workload_tenant_quay_organization | length > 0
+  - ocp4_workload_tenant_quay_team | length > 0
+  ansible.builtin.uri:
+    url: >-
+      {{ _ocp4_workload_tenant_quay_api_url }}/api/v1/organization/{{
+      ocp4_workload_tenant_quay_organization }}/team/{{
+      ocp4_workload_tenant_quay_team }}/members/{{
+      ocp4_workload_tenant_quay_user }}
+    method: PUT
+    validate_certs: false
+    headers:
+      Cookie: "{{ r_quay_signin.cookies_string }}"
+      X-CSRF-Token: "{{ r_quay_csrf_auth.json.csrf_token }}"
+    status_code:
+    - 200
+
 - name: Create docker-registry secrets for Quay
   when: ocp4_workload_tenant_quay_pipeline_namespaces | default([]) | length > 0
   kubernetes.core.k8s:
