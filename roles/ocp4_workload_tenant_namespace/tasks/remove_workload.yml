@@ -27,6 +27,16 @@
 # Removing quota enforcement before namespace termination avoids any
 # edge cases where finalizer-driven object deletion is blocked by quota.
 # -----------------------------------------------------------------------
+- name: Delete per-tenant AdminNetworkPolicy
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: absent
+    api_version: policy.networking.k8s.io/v1alpha1
+    kind: AdminNetworkPolicy
+    name: "tenant-isolation-{{ ocp4_workload_tenant_namespace_uuid | lower }}"
+
 - name: Delete ClusterResourceQuota for tenant
   when: ocp4_workload_tenant_namespace_use_cluster_quota | bool
   kubernetes.core.k8s:

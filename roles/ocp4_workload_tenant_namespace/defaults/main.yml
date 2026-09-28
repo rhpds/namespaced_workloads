@@ -14,9 +14,10 @@ ocp4_workload_tenant_namespace_uuid: "{{ guid }}"
 ocp4_workload_tenant_namespace_role: admin
 
 # Namespaces to create. Leave empty to create a single namespace named after
-# the user (no suffix). Each entry requires 'suffix'. 'quota' and
-# 'limit_range' override the role defaults below and are only used when
-# use_cluster_quota is false.
+# the user (no suffix). Each entry requires 'suffix'.
+# 'quota' merges onto the tenant quota and is used only when
+# use_cluster_quota is false. 'limit_range' merges onto the tenant
+# LimitRange and is applied to that namespace either way.
 #
 # ocp4_workload_tenant_namespace_suffixes:
 # - suffix: myapp
@@ -50,30 +51,61 @@ ocp4_workload_tenant_namespace_suffixes: []
 # still sets the requester annotation on every namespace either way.
 ocp4_workload_tenant_namespace_use_cluster_quota: true
 
-# Total resource pool for the tenant.
-# Used as ClusterResourceQuota hard limits when use_cluster_quota is true,
-# or as the default per-namespace ResourceQuota when use_cluster_quota is false
-# and no per-namespace quota is defined in the suffix entry.
-#
-# Any valid Kubernetes ResourceQuota hard limit key is accepted, including:
-#   pods — caps the total number of pods across all tenant namespaces.
-#   Recommended for multi-tenant clusters to prevent runaway pod creation.
-#   Example: pods: "50"
-ocp4_workload_tenant_namespace_default_quota:
+# Full default quota. Catalog items do not set this name.
+# ocp4_workload_tenant_namespace_default_quota is the overlay:
+# keys it sets replace these values, keys it omits stay here.
+# The numbers are placeholders.
+_ocp4_workload_tenant_namespace_builtin_quota:
   limits.cpu: "4"
   requests.cpu: "4"
-  limits.memory: 8Gi
-  requests.memory: 8Gi
-  requests.storage: 50Gi
+  limits.memory: "8Gi"
+  requests.memory: "8Gi"
+  requests.storage: "50Gi"
+  persistentvolumeclaims: "10"
+  pods: "50"
+  services: "20"
+  services.loadbalancers: "0"
+  services.nodeports: "0"
+  secrets: "50"
+  configmaps: "50"
+  "count/deployments.apps": "30"
+  "count/replicasets.apps": "60"
+  "count/statefulsets.apps": "10"
+  "count/daemonsets.apps": "0"
+  "count/jobs.batch": "20"
+  "count/cronjobs.batch": "10"
+  "count/routes.route.openshift.io": "20"
+  "count/serviceaccounts": "20"
+  "count/rolebindings.rbac.authorization.k8s.io": "20"
+  "count/buildconfigs.build.openshift.io": "10"
+  "openshift.io/imagestreams": "10"
+  requests.ephemeral-storage: "10Gi"
+  limits.ephemeral-storage: "20Gi"
 
-# LimitRange applied to every namespace.
-# Sized to allow 1-2 large pods — the default and max are intentionally high
-# so that containers without explicit resource specs still get useful limits
-# without artificially capping beefy workloads.
-ocp4_workload_tenant_namespace_default_limit_range:
+# Container defaults only. No max.
+# ocp4_workload_tenant_namespace_default_limit_range merges on top.
+_ocp4_workload_tenant_namespace_builtin_limit_range:
   default:
     cpu: "2"
-    memory: 4Gi
+    memory: "4Gi"
   defaultRequest:
-    cpu: 250m
-    memory: 128Mi
+    cpu: "250m"
+    memory: "128Mi"
+
+# Overlay on the quota above.
+# Keys set here replace the builtin value. Keys omitted here stay at the builtin.
+# An empty overlay keeps the builtin quota.
+# Used as ClusterResourceQuota hard limits when use_cluster_quota is true,
+# or as the per-namespace ResourceQuota when use_cluster_quota is false
+# and the suffix entry does not set quota.
+ocp4_workload_tenant_namespace_default_quota: {}
+
+# Overlay on the LimitRange above.
+# Merged recursively: a catalog item can replace default.memory and leave
+# default.cpu and defaultRequest in place.
+ocp4_workload_tenant_namespace_default_limit_range: {}
+
+# Per-tenant AdminNetworkPolicy. Off by default so internal tenant
+# catalog items keep working without one. Set true for a customer-facing
+# tenant that must stay isolated from other tenants on the same cluster.
+ocp4_workload_tenant_namespace_admin_network_policy: false

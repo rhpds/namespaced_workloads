@@ -11,6 +11,22 @@
 #   • ocp4_workload_tenant_namespace_suffixes has entries
 #       → one namespace per entry: {username}-{suffix}
 # -----------------------------------------------------------------------
+- name: Merge catalog quota onto the builtin default
+  ansible.builtin.set_fact:
+    _tenant_namespace_quota: >-
+      {{
+        _ocp4_workload_tenant_namespace_builtin_quota
+        | combine(ocp4_workload_tenant_namespace_default_quota | default({}))
+      }}
+
+- name: Merge catalog LimitRange onto the builtin default
+  ansible.builtin.set_fact:
+    _tenant_namespace_limit_range: >-
+      {{
+        _ocp4_workload_tenant_namespace_builtin_limit_range
+        | combine(ocp4_workload_tenant_namespace_default_limit_range | default({}), recursive=True)
+      }}
+
 - name: Initialize namespace list
   ansible.builtin.set_fact:
     _tenant_namespaces: []
@@ -28,8 +44,8 @@
   ansible.builtin.set_fact:
     _tenant_namespaces:
       - name: "{{ ocp4_workload_tenant_namespace_username }}"
-        quota: "{{ ocp4_workload_tenant_namespace_default_quota }}"
-        limit_range: "{{ ocp4_workload_tenant_namespace_default_limit_range }}"
+        quota: "{{ _tenant_namespace_quota }}"
+        limit_range: "{{ _tenant_namespace_limit_range }}"
         metadata: "{{ _tenant_namespace_identity_metadata }}"
 
 - name: Build namespace list — from suffix entries
@@ -38,8 +54,8 @@
     _tenant_namespaces: >-
       {{ _tenant_namespaces + [{
            'name': ocp4_workload_tenant_namespace_username ~ '-' ~ item.suffix,
-           'quota': item.quota | default(ocp4_workload_tenant_namespace_default_quota),
-           'limit_range': item.limit_range | default(ocp4_workload_tenant_namespace_default_limit_range),
+           'quota': _tenant_namespace_quota | combine(item.quota | default({})),
+           'limit_range': _tenant_namespace_limit_range | combine(item.limit_range | default({}), recursive=True),
            'metadata': (item.metadata | default({}))
               | ansible.builtin.combine(_tenant_namespace_identity_metadata, recursive=True),
          }] }}
@@ -107,7 +123,7 @@
         name: "tenant-{{ ocp4_workload_tenant_namespace_username }}"
       spec:
         quota:
-          hard: "{{ ocp4_workload_tenant_namespace_default_quota }}"
+          hard: "{{ _tenant_namespace_quota }}"
         selector:
           annotations:
             openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
@@ -130,6 +146,22 @@
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
+
+# -----------------------------------------------------------------------
+# Per-tenant AdminNetworkPolicy. Priority 30, so OpenShift checks it
+# before the cluster policy at priority 50. Subjects do not overlap
+# across tenants, so every tenant uses priority 30.
+# GitOps does not own this object.
+# Off unless ocp4_workload_tenant_namespace_admin_network_policy is true.
+# -----------------------------------------------------------------------
+- name: Create per-tenant AdminNetworkPolicy
+  when: ocp4_workload_tenant_namespace_admin_network_policy | bool
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    template: adminnetworkpolicy.yaml.j2
 
 # -----------------------------------------------------------------------
 # RBAC — grant user admin access in each namespace

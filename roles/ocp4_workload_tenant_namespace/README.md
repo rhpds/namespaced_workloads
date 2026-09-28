@@ -7,7 +7,16 @@ Creates one or more OpenShift namespaces for a tenant user, applies resource con
 - Creates namespaces named `{username}-{suffix}`, or a single namespace named after the user when no suffixes are defined
 - Applies a `LimitRange` to every namespace to set container resource defaults
 - Creates a `ClusterResourceQuota` (default) selecting namespaces by the user's `openshift.io/requester` annotation, giving the user a shared resource pool
+- Creates one `AdminNetworkPolicy` per tenant when `ocp4_workload_tenant_namespace_admin_network_policy` is true. It is off by default. Priority 30, so that tenant's namespaces can reach each other and cannot reach other tenants
 - Grants the user the configured RBAC role in each namespace
+
+## Quota and LimitRange
+
+The full default quota and LimitRange are in `defaults/main.yml`. A catalog item sets `ocp4_workload_tenant_namespace_default_quota` or `ocp4_workload_tenant_namespace_default_limit_range` to replace individual keys. Omitted keys stay at the builtin value. Setting `limits.memory: 4000Gi` does not drop the secrets quota. The LimitRange overlay merges one level down, so `default.memory` can change without dropping `default.cpu`.
+
+Set `ocp4_workload_tenant_namespace_admin_network_policy: true` to create the per-tenant AdminNetworkPolicy. Leave it false for an internal tenant that does not need one. Destroy removes it.
+
+The policy only does two things: this tenant's namespaces may talk to each other, and namespaces with `openshift.io/requester` for anyone else may not. There is no per-tenant allow list. Traffic out of the cluster, and any platform destination every tenant needs, belongs on the cluster security policy.
 
 ## Usage
 

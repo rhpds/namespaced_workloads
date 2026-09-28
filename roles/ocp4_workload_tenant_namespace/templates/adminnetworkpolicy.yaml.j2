@@ -1,0 +1,38 @@
+apiVersion: policy.networking.k8s.io/v1alpha1
+kind: AdminNetworkPolicy
+metadata:
+  name: tenant-isolation-{{ ocp4_workload_tenant_namespace_uuid | lower }}
+spec:
+  priority: 30
+  subject:
+    namespaces:
+      matchLabels:
+        demo.redhat.com/tenant-uuid: {{ ocp4_workload_tenant_namespace_uuid | quote }}
+  ingress:
+    - name: allow-from-own-namespaces
+      action: Allow
+      from:
+        - namespaces:
+            matchLabels:
+              demo.redhat.com/tenant-uuid: {{ ocp4_workload_tenant_namespace_uuid | quote }}
+    - name: deny-from-other-tenants
+      action: Deny
+      from:
+        - namespaces:
+            matchExpressions:
+              - key: openshift.io/requester
+                operator: Exists
+  egress:
+    - name: allow-to-own-namespaces
+      action: Allow
+      to:
+        - namespaces:
+            matchLabels:
+              demo.redhat.com/tenant-uuid: {{ ocp4_workload_tenant_namespace_uuid | quote }}
+    - name: deny-to-other-tenants
+      action: Deny
+      to:
+        - namespaces:
+            matchExpressions:
+              - key: openshift.io/requester
+                operator: Exists
