@@ -20,7 +20,7 @@ spec:
       from:
         - namespaces:
             matchExpressions:
-              - key: openshift.io/requester
+              - key: demo.redhat.com/tenant-uuid
                 operator: Exists
   egress:
     - name: allow-to-own-namespaces
@@ -34,5 +34,5 @@ spec:
       to:
         - namespaces:
             matchExpressions:
-              - key: openshift.io/requester
+              - key: demo.redhat.com/tenant-uuid
                 operator: Exists

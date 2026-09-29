@@ -16,7 +16,7 @@ The full default quota and LimitRange are in `defaults/main.yml`. A catalog item
 
 Set `ocp4_workload_tenant_namespace_admin_network_policy: true` to create the per-tenant AdminNetworkPolicy. Leave it false for an internal tenant that does not need one. Destroy removes it.
 
-The policy only does two things: this tenant's namespaces may talk to each other, and namespaces with `openshift.io/requester` for anyone else may not. There is no per-tenant allow list. Traffic out of the cluster, and any platform destination every tenant needs, belongs on the cluster security policy.
+The policy only does two things: this tenant's namespaces may talk to each other, and namespaces with a different `demo.redhat.com/tenant-uuid` label may not. There is no per-tenant allow list. Traffic out of the cluster, and any platform destination every tenant needs, belongs on the cluster security policy.
 
 ## Usage
 
