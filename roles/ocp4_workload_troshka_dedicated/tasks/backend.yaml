@@ -42,6 +42,8 @@
           overcommit:
             cpu_ratio: 4.0
             ram_ratio: 1.5
+          ocp:
+            preview_versions_enabled: {{ 'true' if (troshka_preview_versions_enabled | bool) else 'false' }}
 
 - name: Deploy backend
   kubernetes.core.k8s:

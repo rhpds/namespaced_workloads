@@ -28,6 +28,10 @@ troshka_seed_images: []
 # Each entry is a display name matched against Pattern.name after import.
 troshka_seed_patterns: []
 
+# Offer OCP 5.x (dev-preview) in the canvas / New Project version dropdown.
+# Dedicated CIs are for early testing — keep this on by default.
+troshka_preview_versions_enabled: true
+
 # Resource limits
 troshka_backend_cpu_request: "250m"
 troshka_backend_memory_limit: "2Gi"
