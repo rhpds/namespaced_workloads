@@ -1,8 +1,6 @@
 ---
-# Persist openshift.ingress_controller in system_config so Routes/showroom use
-# the per-cluster rhdp.net domain (ingress-rhdp-net) instead of the default
-# apps.<cluster>.infra.demo.redhat.com controller. Direct DB upsert so this
-# works even before the admin/settings API ships in the backend image.
+# Persist openshift.ingress_controller so Routes/showroom use the per-cluster
+# rhdp.net domain (ingress-rhdp-net) instead of the default apps controller.
 - name: Seed OpenShift IngressController setting
   when: troshka_ingress_controller | default('') != ''
   kubernetes.core.k8s_exec:
@@ -10,22 +8,11 @@
     pod: "{{ _backend_pod }}"
     container: backend
     command: >-
-      python3 -c "
-      from app.core.database import SessionLocal
-      from app.models.system_config import SystemConfig
-      key, val = 'openshift.ingress_controller', '{{ troshka_ingress_controller }}'
-      db = SessionLocal()
-      try:
-          row = db.query(SystemConfig).filter_by(key=key).first()
-          if row:
-              row.value = val
-          else:
-              db.add(SystemConfig(key=key, value=val))
-          db.commit()
-          print(val)
-      finally:
-          db.close()
-      "
+      curl -sf -X PUT
+      http://localhost:8200/api/v1/admin/settings
+      -H "Content-Type: application/json"
+      -H "X-Forwarded-Email: {{ _requester_identity }}"
+      -d '{"ingress_controller":"{{ troshka_ingress_controller }}"}'
   register: _ingress_controller_seed
   failed_when: _ingress_controller_seed.return_code != 0
 
