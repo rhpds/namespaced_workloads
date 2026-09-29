@@ -32,10 +32,6 @@ troshka_seed_patterns: []
 # Dedicated CIs are for early testing — keep this on by default.
 troshka_preview_versions_enabled: true
 
-# OpenShift IngressController for Troshka Routes / showroom. Per-cluster
-# ingress-rhdp-net → apps.<cluster>.rhdp.net (requires guid label on namespaces).
-troshka_ingress_controller: "ingress-rhdp-net"
-
 # Resource limits
 troshka_backend_cpu_request: "250m"
 troshka_backend_memory_limit: "2Gi"
