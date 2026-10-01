@@ -164,6 +164,26 @@
     template: adminnetworkpolicy.yaml.j2
 
 # -----------------------------------------------------------------------
+# Per-namespace EgressFirewall. One per namespace, deny-all default with
+# optional domain and CIDR allows. Evaluated in Tier 2 — requires the
+# ANP above to NOT deny external traffic (no deny-outside rule).
+# Off unless ocp4_workload_tenant_namespace_egress_firewall is true.
+# -----------------------------------------------------------------------
+- name: Create EgressFirewall per tenant namespace
+  when: ocp4_workload_tenant_namespace_egress_firewall | bool
+  kubernetes.core.k8s:
+    host: "{{ ocp4_workload_tenant_namespace_openshift_api_url }}"
+    api_key: "{{ ocp4_workload_tenant_namespace_openshift_api_token }}"
+    validate_certs: false
+    state: present
+    template: egressfirewall.yaml.j2
+  vars:
+    _ocp4_workload_tenant_namespace_name: "{{ item.name }}"
+  loop: "{{ _tenant_namespaces }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+# -----------------------------------------------------------------------
 # RBAC — grant user admin access in each namespace
 # -----------------------------------------------------------------------
 - name: Grant user access in namespace

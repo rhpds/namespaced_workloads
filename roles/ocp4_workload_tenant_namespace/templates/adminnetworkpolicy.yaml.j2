@@ -1,7 +1,7 @@
 apiVersion: policy.networking.k8s.io/v1alpha1
 kind: AdminNetworkPolicy
 metadata:
-  name: tenant-isolation-{{ ocp4_workload_tenant_namespace_uuid | lower }}
+  name: tenant-{{ ocp4_workload_tenant_namespace_uuid | lower }}
 spec:
   priority: 30
   subject:
@@ -15,6 +15,12 @@ spec:
         - namespaces:
             matchLabels:
               demo.redhat.com/tenant-uuid: {{ ocp4_workload_tenant_namespace_uuid | quote }}
+    - name: allow-from-ingress
+      action: Allow
+      from:
+        - namespaces:
+            matchLabels:
+              policy-group.network.openshift.io/ingress: ""
     - name: deny-from-other-tenants
       action: Deny
       from:
@@ -36,3 +42,72 @@ spec:
             matchExpressions:
               - key: demo.redhat.com/tenant-uuid
                 operator: Exists
+    - name: allow-dns
+      action: Allow
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-dns
+      ports:
+        - portNumber:
+            protocol: UDP
+            port: 53
+        - portNumber:
+            protocol: TCP
+            port: 53
+        - portNumber:
+            protocol: UDP
+            port: 5353
+        - portNumber:
+            protocol: TCP
+            port: 5353
+    - name: allow-api
+      action: Allow
+      to:
+        - nodes:
+            matchExpressions:
+              - key: node-role.kubernetes.io/control-plane
+                operator: Exists
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 6443
+    - name: allow-ingress-routes
+      action: Allow
+      to:
+        - nodes:
+            matchExpressions:
+              - key: kubernetes.io/os
+                operator: Exists
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 443
+    - name: allow-image-registry
+      action: Allow
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-image-registry
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 5000
+    - name: allow-kubernetes-api-svc
+      action: Allow
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: default
+      ports:
+        - portNumber:
+            protocol: TCP
+            port: 443
+{% for ns in ocp4_workload_tenant_namespace_egress_allow_namespaces %}
+    - name: allow-to-{{ ns }}
+      action: Allow
+      to:
+        - namespaces:
+            matchLabels:
+              kubernetes.io/metadata.name: {{ ns | quote }}
+{% endfor %}

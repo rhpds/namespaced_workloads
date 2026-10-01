@@ -110,10 +110,20 @@ ocp4_workload_tenant_namespace_default_limit_range: {}
 # tenant that must stay isolated from other tenants on the same cluster.
 ocp4_workload_tenant_namespace_admin_network_policy: false
 
+# Additional platform namespaces tenant pods may reach. Each entry adds
+# an Allow rule in the per-tenant ANP. The image registry, kubernetes API
+# service, DNS, and ingress routes have dedicated rules and do not need
+# to be listed here.
+#
+# ocp4_workload_tenant_namespace_egress_allow_namespaces:
+#   - openshift-logging
+#   - gitea
+ocp4_workload_tenant_namespace_egress_allow_namespaces: []
+
 # Per-namespace EgressFirewall (OVN-Kubernetes). Creates one EgressFirewall
-# per tenant namespace with a deny-all default. Requires the cluster-wide
-# ANP to use Pass (not Deny) on its external egress rule so traffic reaches
-# Tier 2 where EgressFirewall is evaluated.
+# per tenant namespace with a deny-all default. The per-tenant ANP has no
+# deny-outside rule — unmatched external traffic falls to Tier 2 where
+# EgressFirewall evaluates it with DNS-name resolution.
 #
 # ocp4_workload_tenant_namespace_egress_firewall: true
 #
