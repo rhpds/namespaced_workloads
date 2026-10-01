@@ -109,3 +109,20 @@ ocp4_workload_tenant_namespace_default_limit_range: {}
 # catalog items keep working without one. Set true for a customer-facing
 # tenant that must stay isolated from other tenants on the same cluster.
 ocp4_workload_tenant_namespace_admin_network_policy: false
+
+# Per-namespace EgressFirewall (OVN-Kubernetes). Creates one EgressFirewall
+# per tenant namespace with a deny-all default. Requires the cluster-wide
+# ANP to use Pass (not Deny) on its external egress rule so traffic reaches
+# Tier 2 where EgressFirewall is evaluated.
+#
+# ocp4_workload_tenant_namespace_egress_firewall: true
+#
+# ocp4_workload_tenant_namespace_egress_allow_domains:
+#   - pypi.org
+#   - files.pythonhosted.org
+#
+# ocp4_workload_tenant_namespace_egress_allow_cidrs:
+#   - 192.168.1.0/24
+ocp4_workload_tenant_namespace_egress_firewall: false
+ocp4_workload_tenant_namespace_egress_allow_domains: []
+ocp4_workload_tenant_namespace_egress_allow_cidrs: []
