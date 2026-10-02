@@ -5,6 +5,11 @@ metadata:
   namespace: {{ _ocp4_workload_tenant_namespace_name }}
 spec:
   egress:
+{% if _tenant_cluster_ingress_ip is defined %}
+    - type: Allow
+      to:
+        cidrSelector: {{ _tenant_cluster_ingress_ip }}/32
+{% endif %}
 {% for domain in ocp4_workload_tenant_namespace_egress_allow_domains %}
     - type: Allow
       to:

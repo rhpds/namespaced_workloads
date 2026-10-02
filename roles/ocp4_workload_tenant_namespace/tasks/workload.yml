@@ -169,6 +169,12 @@
 # ANP above to NOT deny external traffic (no deny-outside rule).
 # Off unless ocp4_workload_tenant_namespace_egress_firewall is true.
 # -----------------------------------------------------------------------
+- name: Resolve cluster ingress IP for EgressFirewall
+  when: ocp4_workload_tenant_namespace_egress_firewall | bool
+  set_fact:
+    _tenant_cluster_ingress_ip: >-
+      {{ lookup('community.general.dig', openshift_api_url | urlsplit('hostname')) }}
+
 - name: Create EgressFirewall per tenant namespace
   when: ocp4_workload_tenant_namespace_egress_firewall | bool
   kubernetes.core.k8s:
