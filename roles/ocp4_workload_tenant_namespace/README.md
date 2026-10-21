@@ -54,6 +54,11 @@ tenant, and the OpenShift console's web terminal hangs on `/exec/init` until
 the console gives up with `context deadline exceeded` — the exec sidecar is
 reachable, it just cannot call the API to authenticate the user.
 
+The ANP's `allow-kubernetes-api-svc` rule does not grant this and never did,
+but it is still rendered: `rhpds.security.validate_tenant_security` asserts
+that rule by name and fails the provision without it. Removing it needs a
+matching change in `rhpds/security`.
+
 It has to be a `nodeSelector`. The in-cluster `kubernetes.default` ClusterIP
 is DNATed to the control-plane node addresses on 6443, and the external API
 VIP is held by a control-plane node, so both are covered. A `namespaces:`
