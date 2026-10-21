@@ -134,5 +134,16 @@ ocp4_workload_tenant_namespace_egress_allow_namespaces: []
 # ocp4_workload_tenant_namespace_egress_allow_cidrs:
 #   - 192.168.1.0/24
 ocp4_workload_tenant_namespace_egress_firewall: false
+
+# Allow tenant pods to reach Routes on this cluster (Gitea, student apps)
+# when the EgressFirewall is on. Access to the Kubernetes API is always
+# allowed and is not covered by this flag.
+#
+# Every Route resolves to the same shared ingress VIP, so the EgressFirewall
+# cannot distinguish this tenant's Routes from another tenant's. Turning this
+# on means a tenant that knows another tenant's Route hostname can reach it.
+# The per-tenant AdminNetworkPolicy still blocks direct pod-to-pod traffic
+# across tenants; only the Route path is opened.
+ocp4_workload_tenant_namespace_egress_allow_cluster_routes: true
 ocp4_workload_tenant_namespace_egress_allow_domains: []
 ocp4_workload_tenant_namespace_egress_allow_cidrs: []

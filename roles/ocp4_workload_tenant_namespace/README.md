@@ -34,6 +34,48 @@ Leave `suffixes` empty to create a single namespace named after the user.
 
 See [`defaults/main.yml`](defaults/main.yml) for all variables and their descriptions, including quota sizing and how to switch between ClusterResourceQuota and per-namespace ResourceQuota.
 
+## EgressFirewall
+
+Set `ocp4_workload_tenant_namespace_egress_firewall: true` to create one
+EgressFirewall per tenant namespace, ending in a deny-all. Add external
+destinations with `ocp4_workload_tenant_namespace_egress_allow_domains` and
+`ocp4_workload_tenant_namespace_egress_allow_cidrs`.
+
+Two carve-outs are rendered ahead of the deny-all so that a tenant with the
+EgressFirewall on is still a working tenant:
+
+| Carve-out | Target | Controlled by |
+| --- | --- | --- |
+| Kubernetes API | control-plane nodes, TCP 6443 | always on |
+| Cluster Routes | all nodes, TCP 443 | `ocp4_workload_tenant_namespace_egress_allow_cluster_routes` (default true) |
+
+The API rule is not optional. Without it `oc` does not work anywhere in the
+tenant, and the OpenShift console's web terminal hangs on `/exec/init` until
+the console gives up with `context deadline exceeded` — the exec sidecar is
+reachable, it just cannot call the API to authenticate the user.
+
+The ANP's `allow-kubernetes-api-svc` rule does not grant this and never did,
+but it is still rendered: `rhpds.security.validate_tenant_security` asserts
+that rule by name and fails the provision without it. Removing it needs a
+matching change in `rhpds/security`.
+
+It has to be a `nodeSelector`. The in-cluster `kubernetes.default` ClusterIP
+is DNATed to the control-plane node addresses on 6443, and the external API
+VIP is held by a control-plane node, so both are covered. A `namespaces:`
+peer selecting `default` does not work: that Service has node endpoints, not
+pods, and the `default` namespace is empty.
+
+### Route isolation caveat
+
+Every Route on the cluster resolves to the same shared ingress VIP, so the
+EgressFirewall cannot tell one tenant's Routes from another's. Route access
+is all-or-nothing. With `egress_allow_cluster_routes` on, a tenant that knows
+another tenant's Route hostname can reach it, and the application's own
+authentication is what stands between them. The per-tenant AdminNetworkPolicy
+still denies direct pod-to-pod traffic across tenants; only the Route path is
+open. Set the flag to false for a tenant that genuinely must not reach any
+Route, accepting that Gitea and the student's own application URLs go with it.
+
 ## Cluster quota scope
 
 The role sets `openshift.io/requester` to `ocp4_workload_tenant_namespace_username` on every namespace it creates, including a single namespace with no suffixes, regardless of quota mode. Existing labels and other metadata are preserved; the requester annotation takes precedence over custom metadata. OpenShift also sets it on projects requested by that user through the ProjectRequest API (for example, `oc new-project`), so those projects share the same quota without needing a tenant label.

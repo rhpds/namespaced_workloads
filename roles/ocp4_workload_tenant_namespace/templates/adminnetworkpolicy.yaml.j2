@@ -93,6 +93,14 @@ spec:
         - portNumber:
             protocol: TCP
             port: 5000
+    # Inert, but required. This rule cannot match: ANP namespace peers select
+    # pods, and the kubernetes Service in `default` has node endpoints rather
+    # than pods, in a namespace that is empty. API access is granted by the
+    # EgressFirewall nodeSelector rule instead.
+    #
+    # It stays because rhpds.security.validate_tenant_security asserts this
+    # rule by name and fails the provision without it ("Tenant network
+    # policy"). Removing it needs a matching change in rhpds/security.
     - name: allow-kubernetes-api-svc
       action: Allow
       to:
