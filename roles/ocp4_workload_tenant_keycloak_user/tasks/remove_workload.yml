@@ -11,7 +11,8 @@
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     api_version: v1
     kind: Secret
     name: "{{ ocp4_workload_tenant_keycloak_user_keycloak_admin_secret }}"
@@ -31,7 +32,7 @@
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/realms/master/protocol/openid-connect/token"
     method: POST
-    validate_certs: false
+    validate_certs: true
     body_format: form-urlencoded
     body:
       client_id: admin-cli
@@ -47,7 +48,7 @@
       ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{
       ocp4_workload_tenant_keycloak_username }}&exact=true
     method: GET
-    validate_certs: false
+    validate_certs: true
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
   register: r_keycloak_user
@@ -60,7 +61,7 @@
       ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
       r_keycloak_user.json[0].id }}
     method: DELETE
-    validate_certs: false
+    validate_certs: true
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
     status_code:
@@ -75,7 +76,8 @@
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     state: absent
     api_version: user.openshift.io/v1
     kind: Identity
@@ -86,7 +88,8 @@
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     state: absent
     api_version: user.openshift.io/v1
     kind: User
@@ -100,7 +103,8 @@
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     api_version: v1
     kind: Namespace
   register: r_all_namespaces
@@ -109,7 +113,8 @@
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     state: absent
     api_version: v1
     kind: Namespace
@@ -130,7 +135,8 @@
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     api_version: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding
   register: r_crbs
@@ -139,7 +145,8 @@
   kubernetes.core.k8s:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     state: absent
     api_version: rbac.authorization.k8s.io/v1
     kind: ClusterRoleBinding

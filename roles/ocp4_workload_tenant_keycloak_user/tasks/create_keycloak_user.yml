@@ -3,7 +3,8 @@
   kubernetes.core.k8s_info:
     host: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_url }}"
     api_key: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_token }}"
-    validate_certs: false
+    ca_cert: "{{ ocp4_workload_tenant_keycloak_user_openshift_api_ca_cert | default(omit, true) }}"
+    validate_certs: true
     api_version: v1
     kind: Secret
     name: "{{ ocp4_workload_tenant_keycloak_user_keycloak_admin_secret }}"
@@ -23,7 +24,7 @@
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/realms/master/protocol/openid-connect/token"
     method: POST
-    validate_certs: false
+    validate_certs: true
     body_format: form-urlencoded
     body:
       client_id: admin-cli
@@ -36,7 +37,7 @@
   ansible.builtin.uri:
     url: "{{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{ ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users"
     method: POST
-    validate_certs: false
+    validate_certs: true
     body_format: json
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
@@ -57,7 +58,7 @@
       ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users?username={{
       ocp4_workload_tenant_keycloak_username }}
     method: GET
-    validate_certs: false
+    validate_certs: true
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
   register: r_keycloak_user
@@ -69,7 +70,7 @@
       ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
       r_keycloak_user.json[0].id }}/reset-password
     method: PUT
-    validate_certs: false
+    validate_certs: true
     body_format: json
     headers:
       Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
@@ -88,7 +89,7 @@
           {{ _ocp4_workload_tenant_keycloak_user_keycloak_host }}/admin/realms/{{
           ocp4_workload_tenant_keycloak_user_keycloak_realm }}/groups?search={{ item }}&exact=true
         method: GET
-        validate_certs: false
+        validate_certs: true
         headers:
           Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
       register: r_keycloak_groups
@@ -101,7 +102,7 @@
           ocp4_workload_tenant_keycloak_user_keycloak_realm }}/users/{{
           r_keycloak_user.json[0].id }}/groups/{{ item.json[0].id }}
         method: PUT
-        validate_certs: false
+        validate_certs: true
         headers:
           Authorization: "Bearer {{ r_keycloak_token.json.access_token }}"
           Content-Type: application/json
