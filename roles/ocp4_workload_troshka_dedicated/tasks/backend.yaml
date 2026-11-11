@@ -26,8 +26,8 @@
           auth:
             oauth_enabled: true
             jwt_algorithm: "HS256"
-            admin_users: "{{ _requester_identity }}"
-            allowed_users: "{{ _requester_identity }}"
+            admin_users: ""
+            allowed_users: ""
             operator_users: ""
           s3:
             endpoint_url: "{{ troshka_s4_endpoint }}"
