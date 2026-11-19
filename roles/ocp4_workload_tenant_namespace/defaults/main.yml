@@ -77,3 +77,9 @@ ocp4_workload_tenant_namespace_default_limit_range:
   defaultRequest:
     cpu: 250m
     memory: 128Mi
+
+# Retries for the Kubernetes API calls above. A shared tenant cluster can
+# return transient 5xx errors (for example "etcdserver: request timed out")
+# when several seats provision at once; retry instead of failing the seat.
+ocp4_workload_tenant_namespace_api_retries: 5
+ocp4_workload_tenant_namespace_api_delay: 10

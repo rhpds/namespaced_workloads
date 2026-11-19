@@ -36,3 +36,7 @@ With `ocp4_workload_tenant_namespace_use_cluster_quota: false`, a per-namespace 
 ## Provision UUID label
 
 Every namespace the role creates also gets a `demo.redhat.com/tenant-uuid` label set to `ocp4_workload_tenant_namespace_uuid` (defaults to `guid`), giving operators a pod-to-namespace-to-tenant trace path for cleanup.
+
+## Transient API errors
+
+Every Kubernetes API call in the role is retried (`ocp4_workload_tenant_namespace_api_retries`, default 5, every `ocp4_workload_tenant_namespace_api_delay` seconds, default 10). A shared tenant cluster can return transient errors such as `etcdserver: request timed out` while several seats provision at once; without retries one such error fails the whole provision. All calls use `state: present`, so retrying is safe.
