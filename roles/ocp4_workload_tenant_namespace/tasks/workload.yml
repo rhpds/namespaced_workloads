@@ -60,6 +60,10 @@
       apiVersion: v1
       kind: Namespace
       metadata: "{{ item.metadata | ansible.builtin.combine({'name': item.name}) }}"
+  register: r_tenant_namespace_create
+  retries: "{{ ocp4_workload_tenant_namespace_api_retries }}"
+  delay: "{{ ocp4_workload_tenant_namespace_api_delay }}"
+  until: r_tenant_namespace_create is success
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
@@ -85,6 +89,10 @@
           - type: Container
             default: "{{ item.limit_range.default | default({}) }}"
             defaultRequest: "{{ item.limit_range.defaultRequest | default({}) }}"
+  register: r_tenant_namespace_limit_range
+  retries: "{{ ocp4_workload_tenant_namespace_api_retries }}"
+  delay: "{{ ocp4_workload_tenant_namespace_api_delay }}"
+  until: r_tenant_namespace_limit_range is success
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
@@ -111,6 +119,10 @@
         selector:
           annotations:
             openshift.io/requester: "{{ ocp4_workload_tenant_namespace_username }}"
+  register: r_tenant_namespace_cluster_quota
+  retries: "{{ ocp4_workload_tenant_namespace_api_retries }}"
+  delay: "{{ ocp4_workload_tenant_namespace_api_delay }}"
+  until: r_tenant_namespace_cluster_quota is success
 
 - name: Apply ResourceQuota to namespace
   when: not (ocp4_workload_tenant_namespace_use_cluster_quota | bool)
@@ -127,6 +139,10 @@
         namespace: "{{ item.name }}"
       spec:
         hard: "{{ item.quota }}"
+  register: r_tenant_namespace_quota
+  retries: "{{ ocp4_workload_tenant_namespace_api_retries }}"
+  delay: "{{ ocp4_workload_tenant_namespace_api_delay }}"
+  until: r_tenant_namespace_quota is success
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
@@ -154,6 +170,10 @@
         - apiGroup: rbac.authorization.k8s.io
           kind: User
           name: "{{ ocp4_workload_tenant_namespace_username }}"
+  register: r_tenant_namespace_rbac
+  retries: "{{ ocp4_workload_tenant_namespace_api_retries }}"
+  delay: "{{ ocp4_workload_tenant_namespace_api_delay }}"
+  until: r_tenant_namespace_rbac is success
   loop: "{{ _tenant_namespaces }}"
   loop_control:
     label: "{{ item.name }}"
