@@ -5,6 +5,35 @@ metadata:
   namespace: {{ _ocp4_workload_tenant_namespace_name }}
 spec:
   egress:
+    # Kubernetes API. Mandatory: without it the tenant cannot run `oc` at all,
+    # and the console web terminal's exec sidecar cannot authenticate the user
+    # (it hangs on /exec/init until the console times out).
+    #
+    # One rule covers both paths. In-cluster traffic to the kubernetes.default
+    # ClusterIP is DNATed to the control-plane node addresses on 6443, and the
+    # external API VIP is held by a control-plane node, so the nodeSelector
+    # catches both. A `namespaces:` peer cannot do this — the kubernetes
+    # Service has node endpoints, not pods.
+    - type: Allow
+      to:
+        nodeSelector:
+          matchLabels:
+            node-role.kubernetes.io/control-plane: ""
+      ports:
+        - protocol: TCP
+          port: 6443
+{% if ocp4_workload_tenant_namespace_egress_allow_cluster_routes | bool %}
+    # Cluster Routes: Gitea, student applications, anything the lab reaches
+    # over its own Route. Every Route on the cluster resolves to the same
+    # shared ingress VIP, so this cannot be narrowed to one tenant's Routes.
+    # See the EgressFirewall section of the README.
+    - type: Allow
+      to:
+        nodeSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+{% endif %}
 {% for domain in ocp4_workload_tenant_namespace_egress_allow_domains %}
     - type: Allow
       to:
